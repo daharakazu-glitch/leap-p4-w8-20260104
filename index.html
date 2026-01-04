@@ -1,0 +1,1233 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LEAP学習アプリ P4 W8</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Tinos:wght@700&display=swap');
+body {
+background-color: #007BFF; /* ビビットなブルー */
+font-family: 'Noto Sans JP', sans-serif;
+}
+
+/* 英語フォントをTimes New Roman風に設定 */
+.font-english {
+font-family: 'Tinos', 'Times New Roman', serif;
+font-weight: 700;
+font-size: 1.25rem; /* 20px */
+line-height: 1.75rem; /* 28px */
+}
+
+.answer-span {
+color: #DC2626; /* 赤色 */
+font-weight: 700;
+display: none;
+}
+
+.underline-span {
+text-decoration: underline;
+text-underline-offset: 4px;
+display: inline;
+}
+
+.show-answer .answer-span {
+display: inline;
+}
+
+.show-answer .underline-span {
+display: none;
+}
+.explanation {
+display: none;
+white-space: pre-wrap;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+}
+.btn-primary {
+    background-color: #3b82f6;
+    color: white;
+}
+.btn-primary:hover {
+    background-color: #2563eb;
+}
+.btn-secondary {
+    background-color: #6b7280;
+    color: white;
+}
+.btn-secondary:hover {
+    background-color: #4b5563;
+}
+
+/* モバイルでのボタン調整 */
+@media (max-width: 640px) {
+    #control-panel {
+        padding: 0.5rem;
+    }
+    #control-panel button {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.8rem;
+    }
+}
+</style>
+</head>
+<body class="text-gray-800">
+
+<div id="app-container" class="container mx-auto p-4 md:p-8 max-w-4xl">
+<header class="text-center mb-8 bg-blue-500 p-4 rounded-xl shadow-lg">
+<h1 class="text-2xl md:text-3xl font-bold text-white">LEAP 学習アプリ</h1>
+<h2 id="app-subtitle" class="text-xl md:text-2xl font-bold text-white">Part 4 Week 8 (No.1923-2000)</h2>
+</header>
+
+<main class="bg-white/90 backdrop-blur-sm p-6 rounded-xl shadow-lg mb-28">
+<div class="flex justify-end mb-6">
+    <button id="start-quiz-btn" class="bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-4 rounded-lg shadow transition-transform transform hover:scale-105">
+    ランダムテスト
+    </button>
+</div>
+
+<div class="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+    <h3 class="font-bold text-lg mb-2">選択した問題でPDFを作成</h3>
+    <p class="text-gray-600 mb-4">学習したい問題のチェックボックスを選択してから、下のボタンを押してください。</p>
+    <div class="flex items-center mb-4">
+        <input type="checkbox" id="select-all-checkbox" class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+        <label for="select-all-checkbox" class="ml-2 block text-sm text-gray-900">すべて選択 / 解除</label>
+    </div>
+    <div class="flex justify-center">
+        <button id="open-pdf-modal-btn" class="w-full sm:w-auto bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg shadow transition-transform transform hover:scale-105">PDFダウンロードの種類を選択</button>
+    </div>
+</div>
+
+
+<div id="sentence-list" class="space-y-6">
+<!-- センテンスがJSで挿入されます -->
+</div>
+</main>
+</div>
+
+<!-- コントロールパネル -->
+<div id="control-panel" class="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-md p-4 border-t-2 border-gray-200 shadow-2xl flex justify-center items-center space-x-2 md:space-x-4">
+<button id="toggle-answer-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">表示/非表示</button>
+<button id="play-sound-btn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">音声再生</button>
+<button id="record-btn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">録音評価</button>
+<button id="toggle-explanation-btn" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">語の意味</button>
+</div>
+
+<!-- メッセージ/スコア用モーダル -->
+<div id="message-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+<div id="message-content" class="bg-white p-8 rounded-lg shadow-xl text-center">
+<!-- コンテンツはJSで挿入されます -->
+</div>
+</div>
+<!-- クイズ用モーダル -->
+<div id="quiz-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-40 p-4">
+<div class="bg-white w-full max-w-2xl p-8 rounded-2xl shadow-2xl relative">
+<button id="close-quiz-btn" class="absolute top-4 right-4 text-gray-500 hover:text-gray-800 text-3xl font-bold">&times;</button>
+<div id="quiz-content">
+<!-- コンテンツはJSで挿入されます -->
+</div>
+</div>
+</div>
+
+<!-- PDFダウンロード選択モーダル -->
+<div id="pdf-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center z-50">
+    <div class="relative mx-auto p-5 border w-11/12 md:w-1/2 lg:w-1/3 shadow-lg rounded-md bg-white">
+        <div class="mt-3 text-center">
+            <h3 class="text-lg leading-6 font-medium text-gray-900">ダウンロードするPDFの種類を選択</h3>
+            <div class="mt-4 px-7 py-3 space-y-3">
+                <button id="download-list-btn" class="btn btn-primary w-full justify-start">1. 完全な単語のリスト</button>
+                <button id="download-en-quiz-btn" class="btn btn-primary w-full justify-start">2. 英語の単語を解答する問題</button>
+                <button id="download-ja-quiz-btn" class="btn btn-primary w-full justify-start">3. 単語の日本語訳を解答する問題</button>
+                <button id="download-mixed-quiz-btn" class="btn btn-primary w-full justify-start">4. 英語と日本語が混在した問題</button>
+                <button id="download-sentence-quiz-btn" class="btn btn-primary w-full justify-start">5. 例文の穴埋め問題</button>
+                <button id="download-sentence-mixed-quiz-btn" class="btn btn-primary w-full justify-start">6. 例文の混合問題 (穴埋め/和訳)</button>
+            </div>
+            <div class="items-center px-4 py-3">
+                <button id="close-modal-btn" class="btn btn-secondary w-full">キャンセル</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// --- App State ---
+// P2W5 データ (No.584-626)
+const chapterData = [
+    {
+        "id": "1923-1",
+        "answer": "confess",
+        "explanation": "[自] ①（to ～）（～を）白状する　[他] ②～を認める",
+        "en": "confess to the crime",
+        "ja": "犯罪を白状する"
+    },
+    {
+        "id": "1923-2",
+        "answer": "confess",
+        "explanation": "[自] ①（to ～）（～を）白状する　[他] ②～を認める",
+        "en": "confess my ignorance",
+        "ja": "無知を認める"
+    },
+    {
+        "id": "1924",
+        "answer": "carve",
+        "explanation": "[他] ～を彫る，刻む",
+        "en": "carve her initials into a tree",
+        "ja": "木に彼女のイニシャルを刻む"
+    },
+    {
+        "id": "1925",
+        "answer": "murmur",
+        "explanation": "[自] つぶやく",
+        "en": "murmur in her ear",
+        "ja": "彼女の耳元でささやく"
+    },
+    {
+        "id": "1926",
+        "answer": "verbal",
+        "explanation": "[形] 言葉による",
+        "en": "verbal communication",
+        "ja": "言葉による意思の疎通"
+    },
+    {
+        "id": "1927-1",
+        "answer": "oral",
+        "explanation": "[形] ①口述の　②口の",
+        "en": "a 15-minute oral exam",
+        "ja": "15分間の口述試験"
+    },
+    {
+        "id": "1927-2",
+        "answer": "oral",
+        "explanation": "[形] ①口述の　②口の",
+        "en": "oral surgery",
+        "ja": "口腔（口の）外科"
+    },
+    {
+        "id": "1928",
+        "answer": "eloquent",
+        "explanation": "[形] 雄弁な",
+        "en": "make an eloquent speech",
+        "ja": "雄弁な演説をする"
+    },
+    {
+        "id": "1929",
+        "answer": "linguistic",
+        "explanation": "[形] 言語の，言語学の",
+        "en": "a child’s linguistic ability",
+        "ja": "子どもの言語能力"
+    },
+    {
+        "id": "1930",
+        "answer": "metaphor",
+        "explanation": "[名] 隠喩，比喩",
+        "en": "The rose is a metaphor for love in the West.",
+        "ja": "西洋ではバラは愛の比喩表現だ．"
+    },
+    {
+        "id": "1931",
+        "answer": "prose",
+        "explanation": "[名] 散文",
+        "en": "a book written in prose",
+        "ja": "散文で書かれた本"
+    },
+    {
+        "id": "1932",
+        "answer": "narrative",
+        "explanation": "[名] 語り，物語",
+        "en": "a first-person narrative",
+        "ja": "一人称の語り"
+    },
+    {
+        "id": "1933-1",
+        "answer": "plot",
+        "explanation": "[名] ①（小説，演劇などの）筋　②悪だくみ，陰謀",
+        "en": "the plot of the movie",
+        "ja": "その映画の筋"
+    },
+    {
+        "id": "1933-2",
+        "answer": "plot",
+        "explanation": "[名] ①（小説，演劇などの）筋　②悪だくみ，陰謀",
+        "en": "He was involved in the plot.",
+        "ja": "彼はその陰謀に荷担していた．"
+    },
+    {
+        "id": "1934-1",
+        "answer": "draft",
+        "explanation": "[名] ①下書き，草稿　[他] ②～を徴兵する　[形] ③（－ beer）生の（ビール）",
+        "en": "write a draft of my speech",
+        "ja": "スピーチの原稿を書く"
+    },
+    {
+        "id": "1934-2",
+        "answer": "draft",
+        "explanation": "[名] ①下書き，草稿　[他] ②～を徴兵する　[形] ③（－ beer）生の（ビール）",
+        "en": "be drafted into the army",
+        "ja": "陸軍に徴兵される"
+    },
+    {
+        "id": "1934-3",
+        "answer": "draft",
+        "explanation": "[名] ①下書き，草稿　[他] ②～を徴兵する　[形] ③（－ beer）生の（ビール）",
+        "en": "drink draft beer",
+        "ja": "生ビールを飲む"
+    },
+    {
+        "id": "1935",
+        "answer": "manuscript",
+        "explanation": "[名] （手書きの）原稿，写本",
+        "en": "a finished manuscript",
+        "ja": "完成原稿"
+    },
+    {
+        "id": "1936",
+        "answer": "paradox",
+        "explanation": "[名] 逆説",
+        "en": "“Make haste slowly” is a kind of paradox.",
+        "ja": "「急がば回れ」は一種の逆説だ．"
+    },
+    {
+        "id": "1937",
+        "answer": "slang",
+        "explanation": "[名] （集合的に）俗語",
+        "en": "“Cool” is slang for “nice.”",
+        "ja": "“cool” は“nice” の俗語だ．"
+    },
+    {
+        "id": "1938",
+        "answer": "riddle",
+        "explanation": "[名] なぞなぞ，謎〈可算〉",
+        "en": "Can you solve this riddle?",
+        "ja": "このなぞなぞがわかるかな．"
+    },
+    {
+        "id": "1939-1",
+        "answer": "exhibit",
+        "explanation": "[他] ①～を展示する　②～を示す　[名] ③展示物，展覧会",
+        "en": "posters exhibited in the hall",
+        "ja": "ホールに展示されているポスター"
+    },
+    {
+        "id": "1939-2",
+        "answer": "exhibit",
+        "explanation": "[他] ①～を展示する　②～を示す　[名] ③展示物，展覧会",
+        "en": "exhibit a great talent for music",
+        "ja": "音楽の素晴らしい才能を見せる"
+    },
+    {
+        "id": "1939-3",
+        "answer": "exhibit",
+        "explanation": "[他] ①～を展示する　②～を示す　[名] ③展示物，展覧会",
+        "en": "dinosaur exhibits",
+        "ja": "恐竜の展示品"
+    },
+    {
+        "id": "1940",
+        "answer": "portray",
+        "explanation": "[他] ～を描く",
+        "en": "portray the character as a selfish person",
+        "ja": "利己的な人間としてその人物を描く"
+    },
+    {
+        "id": "1941",
+        "answer": "depict",
+        "explanation": "[他] （主に文字や絵や彫刻などで）～を描く",
+        "en": "a painting depicting a hunting scene",
+        "ja": "狩猟の場面を描いた絵画"
+    },
+    {
+        "id": "1942-1",
+        "answer": "landmark",
+        "explanation": "[名] ①目印，名所　②画期的な出来事",
+        "en": "The Sagrada Familia is a landmark in Barcelona.",
+        "ja": "サグラダ・ファミリアはバルセロナの名所だ．"
+    },
+    {
+        "id": "1942-2",
+        "answer": "landmark",
+        "explanation": "[名] ①目印，名所　②画期的な出来事",
+        "en": "a landmark in the history of medicine",
+        "ja": "医学の歴史における画期的な出来事"
+    },
+    {
+        "id": "1943",
+        "answer": "tease",
+        "explanation": "[他] ～をからかう，冷やかす",
+        "en": "Stop teasing him!",
+        "ja": "彼をからかうのをやめて．"
+    },
+    {
+        "id": "1944-1",
+        "answer": "delight",
+        "explanation": "[他] ①～を喜ばせる　[名] ②（大）喜び",
+        "en": "I was delighted to hear the news.",
+        "ja": "（私は）その知らせを聞いて喜んだ．"
+    },
+    {
+        "id": "1944-2",
+        "answer": "delight",
+        "explanation": "[他] ①～を喜ばせる　[名] ②（大）喜び",
+        "en": "to his delight",
+        "ja": "彼が喜んだことに"
+    },
+    {
+        "id": "1945",
+        "answer": "astonish",
+        "explanation": "[他] ～を（とても）驚かせる",
+        "en": "We were astonished at the unexpected news.",
+        "ja": "私たちはその予期せぬ知らせに仰天した．"
+    },
+    {
+        "id": "1946-1",
+        "answer": "dread",
+        "explanation": "[他] ①～を恐れる　[名] ②恐怖",
+        "en": "dread going to the dentist",
+        "ja": "歯医者に行くことを恐れる"
+    },
+    {
+        "id": "1946-2",
+        "answer": "dread",
+        "explanation": "[他] ①～を恐れる　[名] ②恐怖",
+        "en": "a deep sense of dread",
+        "ja": "深い恐怖心"
+    },
+    {
+        "id": "1947-1",
+        "answer": "attribute",
+        "explanation": "[他] ①（A to B）（A）を（B）のせいだとする　[名] ②特性，属性",
+        "en": "attribute his longevity to a glass of wine every day",
+        "ja": "彼の長生きは毎日1杯のワインのおかげだと考える"
+    },
+    {
+        "id": "1947-2",
+        "answer": "attribute",
+        "explanation": "[他] ①（A to B）（A）を（B）のせいだとする　[名] ②特性，属性",
+        "en": "have the attributes of a great leader",
+        "ja": "偉大な指導者の特性を備えている"
+    },
+    {
+        "id": "1948",
+        "answer": "console",
+        "explanation": "[他] ～を慰める",
+        "en": "console a grieving friend",
+        "ja": "嘆き悲しんでいる友だちを慰める"
+    },
+    {
+        "id": "1949",
+        "answer": "arouse",
+        "explanation": "[他] ～を呼び起こす",
+        "en": "The title aroused our interest.",
+        "ja": "そのタイトルが私たちの興味をかき立てた．"
+    },
+    {
+        "id": "1950-1",
+        "answer": "distract",
+        "explanation": "[他] ①（注意，意識など）をそらす　②～の気を紛らす",
+        "en": "I was distracted by someone calling my name.",
+        "ja": "誰かが私の名前を呼ぶ声に気をそらされた．"
+    },
+    {
+        "id": "1950-2",
+        "answer": "distract",
+        "explanation": "[他] ①（注意，意識など）をそらす　②～の気を紛らす",
+        "en": "distract me from my worries",
+        "ja": "私の悩みを紛らす"
+    },
+    {
+        "id": "1951",
+        "answer": "startle",
+        "explanation": "[他] ～を驚かせる",
+        "en": "I was startled by his voice.",
+        "ja": "私は彼の声で驚いた．"
+    },
+    {
+        "id": "1952-1",
+        "answer": "thrill",
+        "explanation": "[他] ①～をぞくぞく［わくわく］させる　[名] ②スリル",
+        "en": "Her performance thrilled me.",
+        "ja": "彼女の演奏は私をぞくぞくさせた．"
+    },
+    {
+        "id": "1952-2",
+        "answer": "thrill",
+        "explanation": "[他] ①～をぞくぞく［わくわく］させる　[名] ②スリル",
+        "en": "His birthday surprise gave him a thrill.",
+        "ja": "誕生日のサプライズに彼はわくわくした．"
+    },
+    {
+        "id": "1953",
+        "answer": "humiliate",
+        "explanation": "[他] ～に恥をかかせる",
+        "en": "He humiliated me in front of my friends.",
+        "ja": "彼は友人の前で私に恥をかかせた．"
+    },
+    {
+        "id": "1954",
+        "answer": "adore",
+        "explanation": "[他] ～を熱愛している",
+        "en": "Matt adores his grandchildren.",
+        "ja": "マットは孫を溺愛している．"
+    },
+    {
+        "id": "1955-1",
+        "answer": "utter",
+        "explanation": "[他] ①（叫び声など）を発する　[形] ②まったくの",
+        "en": "utter a cry of shock",
+        "ja": "びっくりして叫び声を発する"
+    },
+    {
+        "id": "1955-2",
+        "answer": "utter",
+        "explanation": "[他] ①（叫び声など）を発する　[形] ②まったくの",
+        "en": "in an utter panic",
+        "ja": "まったくのパニック状態で"
+    },
+    {
+        "id": "1956",
+        "answer": "exclaim",
+        "explanation": "[自] （驚き，怒りなどで）叫ぶ",
+        "en": "“Oh my God!” she exclaimed.",
+        "ja": "「なんてことなの！」と彼女は叫んだ．"
+    },
+    {
+        "id": "1957-1",
+        "answer": "shed",
+        "explanation": "[他] ①（涙など）を流す　②（光）を当てる ③（不要なもの）を取り除く ④（ヘビなどが）（皮）を脱ぐ，（木が葉っぱ）を落とす",
+        "en": "shed tears[blood]",
+        "ja": "涙［血］を流す"
+    },
+    {
+        "id": "1957-2",
+        "answer": "shed",
+        "explanation": "[他] ①（涙など）を流す　②（光）を当てる ③（不要なもの）を取り除く ④（ヘビなどが）（皮）を脱ぐ，（木が葉っぱ）を落とす",
+        "en": "shed light on the problem",
+        "ja": "問題を解明する（問題に光を当てる）"
+    },
+    {
+        "id": "1957-3",
+        "answer": "shed",
+        "explanation": "[他] ①（涙など）を流す　②（光）を当てる ③（不要なもの）を取り除く ④（ヘビなどが）（皮）を脱ぐ，（木が葉っぱ）を落とす",
+        "en": "shed a bad image",
+        "ja": "悪い印象を払拭する"
+    },
+    {
+        "id": "1957-4",
+        "answer": "shed",
+        "explanation": "[他] ①（涙など）を流す　②（光）を当てる ③（不要なもの）を取り除く ④（ヘビなどが）（皮）を脱ぐ，（木が葉っぱ）を落とす",
+        "en": "A snake regularly sheds its skin.",
+        "ja": "ヘビは定期的に脱皮する（皮を脱ぐ）．"
+    },
+    {
+        "id": "1958",
+        "answer": "resent",
+        "explanation": "[他] ～に憤慨する",
+        "en": "resent my boss’s rude behavior",
+        "ja": "上司の無礼なふるまいに憤慨する"
+    },
+    {
+        "id": "1959-1",
+        "answer": "plead",
+        "explanation": "[自] ①（with ～）（～に）懇願する　[他] ②～を申し立てる",
+        "en": "plead with him to stay",
+        "ja": "彼に留まるように懇願する"
+    },
+    {
+        "id": "1959-2",
+        "answer": "plead",
+        "explanation": "[自] ①（with ～）（～に）懇願する　[他] ②～を申し立てる",
+        "en": "I plead not guilty.",
+        "ja": "無罪を主張します．"
+    },
+    {
+        "id": "1960-1",
+        "answer": "yearn",
+        "explanation": "[自] ①切望する　[他] ②～を切望する",
+        "en": "yearn for freedom",
+        "ja": "自由を切望する"
+    },
+    {
+        "id": "1960-2",
+        "answer": "yearn",
+        "explanation": "[自] ①切望する　[他] ②～を切望する",
+        "en": "yearn to be a pilot",
+        "ja": "パイロットになりたくて仕方ない（パイロットになることを切望する）"
+    },
+    {
+        "id": "1961",
+        "answer": "long",
+        "explanation": "[自] （for ～）（～を）切望する",
+        "en": "long for peace",
+        "ja": "平和を切望する"
+    },
+    {
+        "id": "1962",
+        "answer": "immerse",
+        "explanation": "[他] （A in B）（BにA）を没頭させる",
+        "en": "be immersed[immerse oneself] in English",
+        "ja": "英語漬けになる（英語に没頭させられる［自らを没頭させる］）"
+    },
+    {
+        "id": "1963",
+        "answer": "bewilder",
+        "explanation": "[他] （通例，受け身）～を当惑させる",
+        "en": "I was bewildered by endless paperwork.",
+        "ja": "終わりのない事務処理に当惑した（当惑させられた）．"
+    },
+    {
+        "id": "1964",
+        "answer": "despise",
+        "explanation": "[他] ～を軽蔑する",
+        "en": "despise the neighbors because they are always gossiping",
+        "ja": "うわさ話ばかりしているため，近所の人たちを軽蔑する"
+    },
+    {
+        "id": "1965",
+        "answer": "willing",
+        "explanation": "[形] （be － to do）嫌がらずに～する",
+        "en": "He was willing to help me.",
+        "ja": "彼は嫌がらずに私を助けてくれた．"
+    },
+    {
+        "id": "1966",
+        "answer": "furious",
+        "explanation": "[形] 激怒した",
+        "en": "I was furious with him for leaving the baby alone in the car.",
+        "ja": "彼が赤ちゃんを車の中に放置したことに対して激怒した．"
+    },
+    {
+        "id": "1967-1",
+        "answer": "intimate",
+        "explanation": "[形] ①親密な　②（知識などが）深い",
+        "en": "an intimate conversation",
+        "ja": "親密な会話"
+    },
+    {
+        "id": "1967-2",
+        "answer": "intimate",
+        "explanation": "[形] ①親密な　②（知識などが）深い",
+        "en": "his intimate knowledge of Japan",
+        "ja": "彼の日本に関する深い知識"
+    },
+    {
+        "id": "1968-1",
+        "answer": "aesthetic",
+        "explanation": "[形] ①美的な　②審美眼がある",
+        "en": "from an aesthetic point of view",
+        "ja": "美的観点から"
+    },
+    {
+        "id": "1968-2",
+        "answer": "aesthetic",
+        "explanation": "[形] ①美的な　②審美眼がある",
+        "en": "develop an aesthetic sense",
+        "ja": "審美眼を磨く"
+    },
+    {
+        "id": "1969",
+        "answer": "conscience",
+        "explanation": "[名] 良心",
+        "en": "follow my conscience",
+        "ja": "良心に従う"
+    },
+    {
+        "id": "1970-1",
+        "answer": "mercy",
+        "explanation": "[名] ①慈悲，情け　②幸運",
+        "en": "beg for mercy",
+        "ja": "慈悲を乞う"
+    },
+    {
+        "id": "1970-2",
+        "answer": "mercy",
+        "explanation": "[名] ①慈悲，情け　②幸運",
+        "en": "It was a mercy that we had seat belts.",
+        "ja": "シートベルトをしていたのは幸いだった．"
+    },
+    {
+        "id": "1971",
+        "answer": "compassion",
+        "explanation": "[名] 同情，思いやり",
+        "en": "have compassion for the victims of the crime",
+        "ja": "その犯罪の犠牲者たちに同情する"
+    },
+    {
+        "id": "1972",
+        "answer": "impulse",
+        "explanation": "[名] 衝動",
+        "en": "buy a ring on impulse",
+        "ja": "指輪を衝動買いする"
+    },
+    {
+        "id": "1973",
+        "answer": "aspiration",
+        "explanation": "[名] 熱望",
+        "en": "aspirations for peace",
+        "ja": "平和への望み"
+    },
+    {
+        "id": "1974",
+        "answer": "grief",
+        "explanation": "[名] （人の死などに対する）深い悲しみ",
+        "en": "Greg is in deep grief over her death.",
+        "ja": "グレッグは彼女の死に対して深い悲しみに暮れている．"
+    },
+    {
+        "id": "1975",
+        "answer": "contempt",
+        "explanation": "[名] 軽蔑",
+        "en": "feel contempt for people obsessed with designer clothes",
+        "ja": "ブランドの服に夢中になっている人々を軽蔑している"
+    },
+    {
+        "id": "1976-1",
+        "answer": "insult",
+        "explanation": "[名] ①侮辱　[他] ②～を侮辱する",
+        "en": "take her attitude as an insult",
+        "ja": "彼女の態度を侮辱と受け取る"
+    },
+    {
+        "id": "1976-2",
+        "answer": "insult",
+        "explanation": "[名] ①侮辱　[他] ②～を侮辱する",
+        "en": "I felt insulted when nobody agreed with me.",
+        "ja": "誰も賛同してくれなかったので侮辱されたと感じた．"
+    },
+    {
+        "id": "1977",
+        "answer": "nuisance",
+        "explanation": "[名] 迷惑（になるもの）",
+        "en": "a real nuisance",
+        "ja": "本当に迷惑なもの"
+    },
+    {
+        "id": "1978-1",
+        "answer": "surge",
+        "explanation": "[名] ①（感情などの）高まり　②（数字など）急増",
+        "en": "feel a surge of anger",
+        "ja": "怒りがこみあげてくる（怒りの高まりを感じる）"
+    },
+    {
+        "id": "1978-2",
+        "answer": "surge",
+        "explanation": "[名] ①（感情などの）高まり　②（数字など）急増",
+        "en": "a surge in blood sugar",
+        "ja": "血糖値の急増"
+    },
+    {
+        "id": "1979",
+        "answer": "incentive",
+        "explanation": "[名] 励み",
+        "en": "an incentive to work hard",
+        "ja": "一生懸命働く励み"
+    },
+    {
+        "id": "1980",
+        "answer": "outcome",
+        "explanation": "[名] 結果",
+        "en": "predict the outcome of this election",
+        "ja": "この選挙の結果を予想する"
+    },
+    {
+        "id": "1981",
+        "answer": "factor",
+        "explanation": "[名] 要因",
+        "en": "a key factor in[×of] his success",
+        "ja": "彼の成功のかぎとなる要因"
+    },
+    {
+        "id": "1982-1",
+        "answer": "liable",
+        "explanation": "[形] ①（to do）～しがちだ　②（to ～）（病気などに）かかりやすい ③（for ～）（～に対して）（法的に）責任がある",
+        "en": "Meg is liable to make mistakes.",
+        "ja": "メグはミスをしやすい．"
+    },
+    {
+        "id": "1982-2",
+        "answer": "liable",
+        "explanation": "[形] ①（to do）～しがちだ　②（to ～）（病気などに）かかりやすい ③（for ～）（～に対して）（法的に）責任がある",
+        "en": "be liable to injury",
+        "ja": "けがをしやすい"
+    },
+    {
+        "id": "1982-3",
+        "answer": "liable",
+        "explanation": "[形] ①（to do）～しがちだ　②（to ～）（病気などに）かかりやすい ③（for ～）（～に対して）（法的に）責任がある",
+        "en": "be liable for the accident",
+        "ja": "その事故の責任を負う"
+    },
+    {
+        "id": "1983",
+        "answer": "thorough",
+        "explanation": "[形] 完全な，徹底的な",
+        "en": "do a thorough cleaning of our house",
+        "ja": "我が家の大（徹底的な）掃除をする"
+    },
+    {
+        "id": "1984",
+        "answer": "adequate",
+        "explanation": "[形] 十分な，適切な",
+        "en": "His salary is adequate to support his family.",
+        "ja": "彼の給料は家族を養うには十分だ．"
+    },
+    {
+        "id": "1985-1",
+        "answer": "overall",
+        "explanation": "[形] ①全体的な，全面的な　[副] ②全体的に，全面的に",
+        "en": "an overall estimate",
+        "ja": "全体的な見積り"
+    },
+    {
+        "id": "1985-2",
+        "answer": "overall",
+        "explanation": "[形] ①全体的な，全面的な　[副] ②全体的に，全面的に",
+        "en": "Overall, prices are still high.",
+        "ja": "全体的に見て，物価はまだ高い．"
+    },
+    {
+        "id": "1986",
+        "answer": "ultimate",
+        "explanation": "[形] 究極の，最終の",
+        "en": "our ultimate goal",
+        "ja": "私たちの最終的な目標"
+    },
+    {
+        "id": "1987-1",
+        "answer": "genuine",
+        "explanation": "[形] ①（感情が）心からの　②（絵画などが）本物の",
+        "en": "a genuine respect for Edison",
+        "ja": "エジソンに対する心からの敬意"
+    },
+    {
+        "id": "1987-2",
+        "answer": "genuine",
+        "explanation": "[形] ①（感情が）心からの　②（絵画などが）本物の",
+        "en": "a genuine Picasso",
+        "ja": "本物のピカソ（の作品）"
+    },
+    {
+        "id": "1988",
+        "answer": "slight",
+        "explanation": "[形] わずかな",
+        "en": "have a slight fever",
+        "ja": "微熱（わずかな熱）がある"
+    },
+    {
+        "id": "1989-1",
+        "answer": "radical",
+        "explanation": "[形] ①根本的な，抜本的な　②過激な",
+        "en": "the need for radical reform",
+        "ja": "抜本的な改革の必要性"
+    },
+    {
+        "id": "1989-2",
+        "answer": "radical",
+        "explanation": "[形] ①根本的な，抜本的な　②過激な",
+        "en": "a radical magazine",
+        "ja": "過激な雑誌"
+    },
+    {
+        "id": "1990",
+        "answer": "trivial",
+        "explanation": "[形] ささいな",
+        "en": "Don’t worry about such a trivial matter.",
+        "ja": "そんなささいなことで悩むな．"
+    },
+    {
+        "id": "1991",
+        "answer": "potent",
+        "explanation": "[形] 強力な",
+        "en": "a potent weapon for attracting customers",
+        "ja": "客を引き寄せる強力な武器"
+    },
+    {
+        "id": "1992",
+        "answer": "likewise",
+        "explanation": "[副] 同様に，同じように",
+        "en": "I loved her, and she loved me likewise.",
+        "ja": "私は彼女を愛していたし，同様に彼女も私を愛していた．"
+    },
+    {
+        "id": "1993",
+        "answer": "virtually",
+        "explanation": "[副] 事実上，ほとんど",
+        "en": "That is virtually impossible.",
+        "ja": "それは事実上不可能だ．"
+    },
+    {
+        "id": "1994",
+        "answer": "abruptly",
+        "explanation": "[副] 不意に，突然",
+        "en": "The car in front stopped abruptly.",
+        "ja": "前の車が不意に止まった．"
+    },
+    {
+        "id": "1995-1",
+        "answer": "deliberately",
+        "explanation": "[副] ①故意に　②慎重に",
+        "en": "leave the letter on the desk deliberately",
+        "ja": "手紙を故意に机の上に置く"
+    },
+    {
+        "id": "1995-2",
+        "answer": "deliberately",
+        "explanation": "[副] ①故意に　②慎重に",
+        "en": "speak slowly and deliberately",
+        "ja": "ゆっくりと慎重に話す"
+    },
+    {
+        "id": "1996",
+        "answer": "exclusively",
+        "explanation": "[副] もっぱら，～専用で",
+        "en": "This room is exclusively for our staff.",
+        "ja": "この部屋は従業員専用です．"
+    },
+    {
+        "id": "1997",
+        "answer": "hence",
+        "explanation": "[副] だから，それゆえに",
+        "en": "The roads were icy; hence driving was not safe.",
+        "ja": "道路が凍っていた．それゆえ，車の運転は危険だった．"
+    },
+    {
+        "id": "1998",
+        "answer": "namely",
+        "explanation": "[副] すなわち",
+        "en": "two basic problems; namely, time and money",
+        "ja": "2つの基本的な問題，すなわち時間とお金"
+    },
+    {
+        "id": "1999",
+        "answer": "allegedly",
+        "explanation": "[副] （本当かどうかはわからないが）伝えられるところによると",
+        "en": "They were allegedly involved in the murder.",
+        "ja": "彼らはその殺人事件に関与したとされている．（伝えられるところによると，彼らはその殺人事件に関与した．）"
+    },
+    {
+        "id": "2000",
+        "answer": "whereas",
+        "explanation": "[接] ～だが一方",
+        "en": "Tom is quiet, whereas his brother is rather talkative.",
+        "ja": "トムは無口だが，一方，彼の弟はかなりおしゃべりだ．"
+    }
+];
+
+let activeSentenceElement = null;
+let selectedSentences = new Set();
+
+// --- DOM Elements ---
+const sentenceList = document.getElementById('sentence-list');
+const appSubtitle = document.getElementById('app-subtitle');
+const toggleAnswerBtn = document.getElementById('toggle-answer-btn');
+const playSoundBtn = document.getElementById('play-sound-btn');
+const recordBtn = document.getElementById('record-btn');
+const toggleExplanationBtn = document.getElementById('toggle-explanation-btn');
+const startQuizBtn = document.getElementById('start-quiz-btn');
+const messageModal = document.getElementById('message-modal');
+const messageContent = document.getElementById('message-content');
+const quizModal = document.getElementById('quiz-modal');
+const closeQuizBtn = document.getElementById('close-quiz-btn');
+const quizContent = document.getElementById('quiz-content');
+const selectAllCheckbox = document.getElementById('select-all-checkbox');
+
+const pdfModal = document.getElementById('pdf-modal');
+const openPdfModalBtn = document.getElementById('open-pdf-modal-btn');
+const closeModalBtn = document.getElementById('close-modal-btn');
+
+
+// --- Voice Synthesis ---
+let synthesisVoice = null;
+
+function setSynthesisVoice() {
+    const voices = speechSynthesis.getVoices();
+    if (voices.length > 0) {
+        synthesisVoice = voices.find(voice => voice.lang === 'en-US' && voice.name.includes('Google')) ||
+                         voices.find(voice => voice.lang === 'en-US' && voice.name.includes('Microsoft')) ||
+                         voices.find(voice => voice.lang === 'en-US');
+    }
+}
+
+setSynthesisVoice();
+if (speechSynthesis.onvoiceschanged !== undefined) {
+    speechSynthesis.onvoiceschanged = setSynthesisVoice;
+}
+
+
+// --- Functions ---
+
+function findAnswerFormInSentence(enSentence, answer) {
+    const originalWords = enSentence.split(' ');
+    const answerLower = answer.toLowerCase();
+
+    // LEAP特有の不規則活用やフレーズ対応
+    const irregularVerbs = {
+        'deal': 'dealt',
+        'bind': 'bound',
+        'bend': 'bent',
+        'fix': 'fixed',
+        'promote': 'promoted',
+        'extend': 'extended',
+        'spread': 'spread',
+        'bump': 'bumped'
+    };
+
+    const forms = [
+        answerLower,
+        answerLower + 's',
+        answerLower + 'es',
+        answerLower + 'ed',
+        answerLower + 'ing',
+        answerLower.endsWith('e') ? answerLower.slice(0, -1) + 'ing' : '',
+        answerLower.endsWith('e') ? answerLower + 'd' : '',
+        irregularVerbs[answerLower] || ''
+    ].filter(f => f !== '');
+    
+    for (let i = 0; i < originalWords.length; i++) {
+        const word = originalWords[i].toLowerCase().replace(/[.,!?]$/, '');
+        if (forms.includes(word)) {
+            return originalWords[i]; 
+        }
+    }
+
+    // どの形式も見つからない場合、部分一致で検索
+    const fallback = originalWords.find(w => w.toLowerCase().includes(answerLower));
+    return fallback || answer; 
+}
+
+
+function formatEnglishSentence(enSentence, answer) {
+    const blank = '__________';
+    const actualWord = findAnswerFormInSentence(enSentence, answer);
+
+    if (actualWord) {
+        const answerHtml = `<span class="answer-span">${actualWord}</span>`;
+        const underlineHtml = `<span class="underline-span">${blank}</span>`;
+        
+        // 単語として一致する箇所を置換
+        const words = enSentence.split(' ');
+        let replaced = false; 
+        const processedWords = words.map(word => {
+            if (!replaced && word.replace(/[.,!?]$/, '') === actualWord.replace(/[.,!?]$/, '')) {
+                 replaced = true;
+                 const punctuation = word.match(/[.,!?]$/);
+                 return `<span class="answer-span">${word.replace(/[.,!?]$/, '')}</span><span class="underline-span">${blank}</span>${punctuation ? punctuation[0] : ''}`;
+            }
+            return word; 
+        });
+
+        let replacedSentence = processedWords.join(' ');
+        if (!replaced) {
+             replacedSentence = enSentence.replace(actualWord, `${answerHtml}${underlineHtml}`);
+        }
+        return replacedSentence;
+    }
+    return enSentence;
+}
+
+
+function renderChapter() {
+    sentenceList.innerHTML = '';
+    if (chapterData.length === 0) return;
+
+    chapterData.forEach(item => {
+        const sentenceDiv = document.createElement('div');
+        sentenceDiv.className = 'sentence-item p-4 border border-gray-200 rounded-lg bg-white transition-shadow duration-300 hover:shadow-md';
+        sentenceDiv.dataset.id = item.id;
+        sentenceDiv.dataset.fullSentence = item.en;
+
+        const englishSentenceHtml = formatEnglishSentence(item.en, item.answer);
+
+        sentenceDiv.innerHTML = `
+        <div class="flex items-start space-x-4">
+            <input type="checkbox" class="sentence-checkbox mt-1 h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" data-id="${item.id}">
+            <span class="text-lg font-bold text-gray-400 w-16">${item.id}</span>
+            <div class="flex-1 cursor-pointer">
+                <p class="mb-2 text-gray-700 font-bold">${item.ja}</p>
+                <p class="font-english">${englishSentenceHtml}</p>
+                <div class="explanation mt-4 p-4 bg-yellow-50 border-l-4 border-yellow-400 text-sm text-gray-700 rounded-r-lg">
+                ${item.explanation}
+                </div>
+            </div>
+        </div>
+        `;
+        sentenceList.appendChild(sentenceDiv);
+    });
+    
+    document.querySelectorAll('.sentence-item .flex-1').forEach(item => {
+        item.addEventListener('click', (e) => {
+             const sentenceWrapper = e.currentTarget.closest('.sentence-item');
+            if (activeSentenceElement) {
+                activeSentenceElement.classList.remove('ring-2', 'ring-blue-400', 'shadow-xl');
+            }
+            activeSentenceElement = sentenceWrapper;
+            activeSentenceElement.classList.add('ring-2', 'ring-blue-400', 'shadow-xl');
+        });
+    });
+
+    document.querySelectorAll('.sentence-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('click', (e) => {
+            e.stopPropagation(); 
+            const sentenceId = e.target.dataset.id;
+            if (e.target.checked) {
+                selectedSentences.add(sentenceId);
+            } else {
+                selectedSentences.delete(sentenceId);
+            }
+        });
+    });
+    
+    if (sentenceList.firstChild) {
+        sentenceList.firstChild.querySelector('.flex-1').click();
+    }
+}
+
+function showMessage(htmlContent, duration = null) {
+    messageContent.innerHTML = htmlContent;
+    messageModal.classList.remove('hidden');
+    if (duration) {
+        setTimeout(() => {
+            messageModal.classList.add('hidden');
+        }, duration);
+    }
+}
+
+function playSound() {
+    if (!activeSentenceElement) return;
+    speechSynthesis.cancel();
+    const textToSpeak = activeSentenceElement.dataset.fullSentence;
+    const utterance = new SpeechSynthesisUtterance(textToSpeak);
+    utterance.lang = 'en-US';
+    if (synthesisVoice) utterance.voice = synthesisVoice;
+    utterance.rate = 0.9;
+    speechSynthesis.speak(utterance);
+}
+
+function handleRecording() {
+    if (!activeSentenceElement) return;
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+        showMessage('<p>お使いのブラウザは音声認識に対応していません。</p>', 3000);
+        return;
+    }
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'en-US';
+    recognition.onstart = () => {
+         showMessage('<p class="text-xl">マイクに向かって話してください...</p><div class="animate-pulse text-red-500 text-4xl mt-4">●</div>');
+    };
+    recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        evaluatePronunciation(transcript);
+    };
+    recognition.onerror = () => showMessage('<p>認識エラーが発生しました。</p>', 2000);
+    recognition.start();
+}
+
+function evaluatePronunciation(transcript) {
+    const originalText = activeSentenceElement.dataset.fullSentence.toLowerCase().replace(/[^\w\s]/g, '');
+    const spokenText = transcript.toLowerCase().replace(/[^\w\s]/g, '');
+    
+    const origWords = originalText.split(' ');
+    const spokenWords = spokenText.split(' ');
+    let matches = 0;
+    origWords.forEach(w => { if(spokenWords.includes(w)) matches++; });
+
+    const score = Math.min(100, Math.round((matches / origWords.length) * 100) + Math.floor(Math.random() * 10));
+
+    const messageHtml = `
+    <h3 class="text-xl font-bold mb-4">評価結果</h3>
+    <p class="text-6xl font-bold text-blue-600 mb-4">${score}<span class="text-xl">点</span></p>
+    <p class="text-sm text-gray-500 mb-2">発音: "${transcript}"</p>
+    <button onclick="document.getElementById('message-modal').classList.add('hidden')" class="mt-4 bg-blue-500 text-white py-2 px-6 rounded-lg">閉じる</button>
+    `;
+    showMessage(messageHtml);
+}
+
+function startQuiz() {
+    const quizData = [...chapterData].sort(() => 0.5 - Math.random()).slice(0, 10);
+    let currentIdx = 0;
+    let score = 0;
+
+    function nextQuestion() {
+        if (currentIdx >= quizData.length) {
+            quizContent.innerHTML = `<h3 class="text-2xl font-bold mb-4">終了！</h3><p class="text-5xl font-bold text-purple-600">${score * 10}点</p>`;
+            return;
+        }
+        const item = quizData[currentIdx];
+        const correct = findAnswerFormInSentence(item.en, item.answer).replace(/[.,!?]$/, '');
+        const options = [correct, ...chapterData.map(d => d.answer).filter(a => a !== item.answer).sort(() => 0.5 - Math.random()).slice(0, 3)].sort(() => 0.5 - Math.random());
+
+        quizContent.innerHTML = `
+            <p class="mb-2 text-gray-500">Q${currentIdx+1}</p>
+            <p class="text-lg font-bold mb-4">${item.ja}</p>
+            <p class="font-english text-xl mb-6 p-4 bg-gray-50 rounded-lg">${item.en.replace(correct, '______')}</p>
+            <div class="grid grid-cols-2 gap-3">
+                ${options.map(opt => `<button class="quiz-opt p-3 border rounded-lg hover:bg-blue-50 font-english">${opt}</button>`).join('')}
+            </div>
+        `;
+
+        document.querySelectorAll('.quiz-opt').forEach(btn => {
+            btn.onclick = () => {
+                if(btn.innerText === correct) score++;
+                currentIdx++;
+                nextQuestion();
+            };
+        });
+    }
+    quizModal.classList.remove('hidden');
+    nextQuestion();
+}
+
+// --- PDF Print Logic ---
+function openPrintWindow(bodyContent, title) {
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`<html><head><title>LEAP学習アプリ P4 W8</title><style>body{font-family:sans-serif;padding:40px;}h1{text-align:center;border-bottom:2px solid #000;padding-bottom:10px;}.list{column-count:2;}li{margin-bottom:10px;}</style></head><body><h1>${title}</h1>${bodyContent}</body></html>`);
+    printWindow.document.close();
+    setTimeout(() => { printWindow.focus(); printWindow.print(); }, 500);
+}
+
+// --- Listeners ---
+toggleAnswerBtn.onclick = () => activeSentenceElement?.classList.toggle('show-answer');
+toggleExplanationBtn.onclick = () => {
+    const div = activeSentenceElement?.querySelector('.explanation');
+    if(div) div.style.display = div.style.display === 'block' ? 'none' : 'block';
+};
+playSoundBtn.onclick = playSound;
+recordBtn.onclick = handleRecording;
+startQuizBtn.onclick = startQuiz;
+closeQuizBtn.onclick = () => quizModal.classList.add('hidden');
+openPdfModalBtn.onclick = () => pdfModal.classList.remove('hidden');
+closeModalBtn.onclick = () => pdfModal.classList.add('hidden');
+
+selectAllCheckbox.onchange = (e) => {
+    document.querySelectorAll('.sentence-checkbox').forEach(cb => {
+        cb.checked = e.target.checked;
+        if(e.target.checked) selectedSentences.add(cb.dataset.id); else selectedSentences.delete(cb.dataset.id);
+    });
+};
+
+document.getElementById('download-list-btn').onclick = () => {
+    const items = Array.from(selectedSentences).map(id => chapterData.find(d => d.id === id));
+    const html = `<div class="list"><ul>${items.map(i => `<li><strong>${i.answer}</strong>: ${i.explanation}</li>`).join('')}</ul></div>`;
+    openPrintWindow(html, '重要語句リスト');
+};
+
+document.getElementById('download-en-quiz-btn').onclick = () => {
+    const items = Array.from(selectedSentences).map(id => chapterData.find(d => d.id === id));
+    const html = `<ol>${items.map(i => `<li>${i.ja} ( ________ )</li>`).join('')}</ol><hr><h3>解答</h3><p>${items.map(i => i.answer).join(', ')}</p>`;
+    openPrintWindow(html, '英語解答テスト');
+};
+
+// Initial Render
+document.addEventListener('DOMContentLoaded', renderChapter);
+</script>
+</body>
+</html>
