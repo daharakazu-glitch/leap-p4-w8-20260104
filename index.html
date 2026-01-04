@@ -12,7 +12,7 @@ background-color: #007BFF; /* ビビットなブルー */
 font-family: 'Noto Sans JP', sans-serif;
 }
 
-/* 英語フォントをTimes New Roman風に設定 */
+/* 英語フォントをTimes New Romanに設定 */
 .font-english {
 font-family: 'Tinos', 'Times New Roman', serif;
 font-weight: 700;
@@ -110,12 +110,12 @@ white-space: pre-wrap;
 
 
 <div id="sentence-list" class="space-y-6">
-<!-- センテンスがJSで挿入されます -->
+<!-- Sentences will be populated by JS -->
 </div>
 </main>
 </div>
 
-<!-- コントロールパネル -->
+<!-- Control Panel -->
 <div id="control-panel" class="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-md p-4 border-t-2 border-gray-200 shadow-2xl flex justify-center items-center space-x-2 md:space-x-4">
 <button id="toggle-answer-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">表示/非表示</button>
 <button id="play-sound-btn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">音声再生</button>
@@ -123,23 +123,23 @@ white-space: pre-wrap;
 <button id="toggle-explanation-btn" class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105">語の意味</button>
 </div>
 
-<!-- メッセージ/スコア用モーダル -->
+<!-- Message/Score Modal -->
 <div id="message-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
 <div id="message-content" class="bg-white p-8 rounded-lg shadow-xl text-center">
-<!-- コンテンツはJSで挿入されます -->
+<!-- Message content will be populated by JS -->
 </div>
 </div>
-<!-- クイズ用モーダル -->
+<!-- Quiz Modal -->
 <div id="quiz-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-40 p-4">
 <div class="bg-white w-full max-w-2xl p-8 rounded-2xl shadow-2xl relative">
 <button id="close-quiz-btn" class="absolute top-4 right-4 text-gray-500 hover:text-gray-800 text-3xl font-bold">&times;</button>
 <div id="quiz-content">
-<!-- コンテンツはJSで挿入されます -->
+<!-- Quiz content will be populated by JS -->
 </div>
 </div>
 </div>
 
-<!-- PDFダウンロード選択モーダル -->
+<!-- PDF Download Modal -->
 <div id="pdf-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center z-50">
     <div class="relative mx-auto p-5 border w-11/12 md:w-1/2 lg:w-1/3 shadow-lg rounded-md bg-white">
         <div class="mt-3 text-center">
@@ -161,7 +161,6 @@ white-space: pre-wrap;
 
 <script>
 // --- App State ---
-// P2W5 データ (No.584-626)
 const chapterData = [
     {
         "id": "1923-1",
@@ -926,7 +925,6 @@ let selectedSentences = new Set();
 
 // --- DOM Elements ---
 const sentenceList = document.getElementById('sentence-list');
-const appSubtitle = document.getElementById('app-subtitle');
 const toggleAnswerBtn = document.getElementById('toggle-answer-btn');
 const playSoundBtn = document.getElementById('play-sound-btn');
 const recordBtn = document.getElementById('record-btn');
@@ -938,106 +936,45 @@ const quizModal = document.getElementById('quiz-modal');
 const closeQuizBtn = document.getElementById('close-quiz-btn');
 const quizContent = document.getElementById('quiz-content');
 const selectAllCheckbox = document.getElementById('select-all-checkbox');
-
 const pdfModal = document.getElementById('pdf-modal');
 const openPdfModalBtn = document.getElementById('open-pdf-modal-btn');
 const closeModalBtn = document.getElementById('close-modal-btn');
 
-
-// --- Voice Synthesis ---
+// --- Voice Synthesis Setup ---
 let synthesisVoice = null;
-
 function setSynthesisVoice() {
     const voices = speechSynthesis.getVoices();
-    if (voices.length > 0) {
-        synthesisVoice = voices.find(voice => voice.lang === 'en-US' && voice.name.includes('Google')) ||
-                         voices.find(voice => voice.lang === 'en-US' && voice.name.includes('Microsoft')) ||
-                         voices.find(voice => voice.lang === 'en-US');
-    }
+    synthesisVoice = voices.find(v => v.lang === 'en-US' && (v.name.includes('Google') || v.name.includes('Samantha') || v.name.includes('Natural'))) || voices.find(v => v.lang.startsWith('en'));
 }
-
-setSynthesisVoice();
 if (speechSynthesis.onvoiceschanged !== undefined) {
     speechSynthesis.onvoiceschanged = setSynthesisVoice;
 }
+setSynthesisVoice();
 
-
-// --- Functions ---
-
+// --- Core Functions ---
 function findAnswerFormInSentence(enSentence, answer) {
-    const originalWords = enSentence.split(' ');
-    const answerLower = answer.toLowerCase();
-
-    // LEAP特有の不規則活用やフレーズ対応
-    const irregularVerbs = {
-        'deal': 'dealt',
-        'bind': 'bound',
-        'bend': 'bent',
-        'fix': 'fixed',
-        'promote': 'promoted',
-        'extend': 'extended',
-        'spread': 'spread',
-        'bump': 'bumped'
-    };
-
-    const forms = [
-        answerLower,
-        answerLower + 's',
-        answerLower + 'es',
-        answerLower + 'ed',
-        answerLower + 'ing',
-        answerLower.endsWith('e') ? answerLower.slice(0, -1) + 'ing' : '',
-        answerLower.endsWith('e') ? answerLower + 'd' : '',
-        irregularVerbs[answerLower] || ''
-    ].filter(f => f !== '');
-    
-    for (let i = 0; i < originalWords.length; i++) {
-        const word = originalWords[i].toLowerCase().replace(/[.,!?]$/, '');
-        if (forms.includes(word)) {
-            return originalWords[i]; 
-        }
+    const cleanAnswer = answer.toLowerCase().replace(/[.,!?]$/, '');
+    const words = enSentence.split(/\s+/);
+    for (let word of words) {
+        const cleanWord = word.toLowerCase().replace(/[.,!?]$/, '');
+        if (cleanWord === cleanAnswer) return word.replace(/[.,!?]$/, '');
     }
-
-    // どの形式も見つからない場合、部分一致で検索
-    const fallback = originalWords.find(w => w.toLowerCase().includes(answerLower));
-    return fallback || answer; 
+    return answer;
 }
-
 
 function formatEnglishSentence(enSentence, answer) {
     const blank = '__________';
     const actualWord = findAnswerFormInSentence(enSentence, answer);
-
-    if (actualWord) {
-        const answerHtml = `<span class="answer-span">${actualWord}</span>`;
-        const underlineHtml = `<span class="underline-span">${blank}</span>`;
-        
-        // 単語として一致する箇所を置換
-        const words = enSentence.split(' ');
-        let replaced = false; 
-        const processedWords = words.map(word => {
-            if (!replaced && word.replace(/[.,!?]$/, '') === actualWord.replace(/[.,!?]$/, '')) {
-                 replaced = true;
-                 const punctuation = word.match(/[.,!?]$/);
-                 return `<span class="answer-span">${word.replace(/[.,!?]$/, '')}</span><span class="underline-span">${blank}</span>${punctuation ? punctuation[0] : ''}`;
-            }
-            return word; 
-        });
-
-        let replacedSentence = processedWords.join(' ');
-        if (!replaced) {
-             replacedSentence = enSentence.replace(actualWord, `${answerHtml}${underlineHtml}`);
-        }
-        return replacedSentence;
+    const regex = new RegExp(`\\b${actualWord}\\b`, 'i');
+    
+    if (regex.test(enSentence)) {
+        return enSentence.replace(regex, `<span class="answer-span">${actualWord}</span><span class="underline-span">${blank}</span>`);
     }
     return enSentence;
 }
 
-
 function renderChapter() {
     sentenceList.innerHTML = '';
-    if (chapterData.length === 0) return;
-
     chapterData.forEach(item => {
         const sentenceDiv = document.createElement('div');
         sentenceDiv.className = 'sentence-item p-4 border border-gray-200 rounded-lg bg-white transition-shadow duration-300 hover:shadow-md';
@@ -1049,11 +986,11 @@ function renderChapter() {
         sentenceDiv.innerHTML = `
         <div class="flex items-start space-x-4">
             <input type="checkbox" class="sentence-checkbox mt-1 h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" data-id="${item.id}">
-            <span class="text-lg font-bold text-gray-400 w-16">${item.id}</span>
+            <span class="text-sm font-bold text-gray-400 w-8">${item.id}</span>
             <div class="flex-1 cursor-pointer">
-                <p class="mb-2 text-gray-700 font-bold">${item.ja}</p>
+                <p class="mb-2 text-gray-700">${item.ja}</p>
                 <p class="font-english">${englishSentenceHtml}</p>
-                <div class="explanation mt-4 p-4 bg-yellow-50 border-l-4 border-yellow-400 text-sm text-gray-700 rounded-r-lg">
+                <div class="explanation mt-4 p-4 bg-blue-50 border-l-4 border-blue-400 text-gray-700 rounded-r-lg">
                 ${item.explanation}
                 </div>
             </div>
@@ -1076,38 +1013,26 @@ function renderChapter() {
     document.querySelectorAll('.sentence-checkbox').forEach(checkbox => {
         checkbox.addEventListener('click', (e) => {
             e.stopPropagation(); 
-            const sentenceId = e.target.dataset.id;
-            if (e.target.checked) {
-                selectedSentences.add(sentenceId);
-            } else {
-                selectedSentences.delete(sentenceId);
-            }
+            if (e.target.checked) selectedSentences.add(e.target.dataset.id);
+            else selectedSentences.delete(e.target.dataset.id);
         });
     });
     
-    if (sentenceList.firstChild) {
-        sentenceList.firstChild.querySelector('.flex-1').click();
-    }
+    if (sentenceList.firstChild) sentenceList.firstChild.querySelector('.flex-1').click();
 }
 
 function showMessage(htmlContent, duration = null) {
     messageContent.innerHTML = htmlContent;
     messageModal.classList.remove('hidden');
-    if (duration) {
-        setTimeout(() => {
-            messageModal.classList.add('hidden');
-        }, duration);
-    }
+    if (duration) setTimeout(() => messageModal.classList.add('hidden'), duration);
 }
 
 function playSound() {
     if (!activeSentenceElement) return;
     speechSynthesis.cancel();
-    const textToSpeak = activeSentenceElement.dataset.fullSentence;
-    const utterance = new SpeechSynthesisUtterance(textToSpeak);
-    utterance.lang = 'en-US';
+    const utterance = new SpeechSynthesisUtterance(activeSentenceElement.dataset.fullSentence);
     if (synthesisVoice) utterance.voice = synthesisVoice;
-    utterance.rate = 0.9;
+    utterance.lang = 'en-US';
     speechSynthesis.speak(utterance);
 }
 
@@ -1120,65 +1045,49 @@ function handleRecording() {
     }
     const recognition = new SpeechRecognition();
     recognition.lang = 'en-US';
-    recognition.onstart = () => {
-         showMessage('<p class="text-xl">マイクに向かって話してください...</p><div class="animate-pulse text-red-500 text-4xl mt-4">●</div>');
-    };
-    recognition.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        evaluatePronunciation(transcript);
-    };
+    recognition.onstart = () => showMessage('<p class="text-2xl">マイクに向かって話してください...</p><div class="animate-pulse text-red-500 text-4xl mt-4">●</div>');
+    recognition.onresult = (event) => evaluatePronunciation(event.results[0][0].transcript);
     recognition.onerror = () => showMessage('<p>認識エラーが発生しました。</p>', 2000);
     recognition.start();
 }
 
 function evaluatePronunciation(transcript) {
-    const originalText = activeSentenceElement.dataset.fullSentence.toLowerCase().replace(/[^\w\s]/g, '');
-    const spokenText = transcript.toLowerCase().replace(/[^\w\s]/g, '');
+    const original = activeSentenceElement.dataset.fullSentence.toLowerCase().replace(/[^\w\s]/g, '');
+    const user = transcript.toLowerCase().replace(/[^\w\s]/g, '');
+    const score = Math.min(100, Math.floor((user.split(' ').filter(w => original.includes(w)).length / original.split(' ').length) * 100) + 15);
     
-    const origWords = originalText.split(' ');
-    const spokenWords = spokenText.split(' ');
-    let matches = 0;
-    origWords.forEach(w => { if(spokenWords.includes(w)) matches++; });
-
-    const score = Math.min(100, Math.round((matches / origWords.length) * 100) + Math.floor(Math.random() * 10));
-
-    const messageHtml = `
-    <h3 class="text-xl font-bold mb-4">評価結果</h3>
-    <p class="text-6xl font-bold text-blue-600 mb-4">${score}<span class="text-xl">点</span></p>
-    <p class="text-sm text-gray-500 mb-2">発音: "${transcript}"</p>
-    <button onclick="document.getElementById('message-modal').classList.add('hidden')" class="mt-4 bg-blue-500 text-white py-2 px-6 rounded-lg">閉じる</button>
-    `;
-    showMessage(messageHtml);
+    showMessage(`
+        <h3 class="text-2xl font-bold mb-4">評価結果</h3>
+        <p class="text-7xl font-bold text-blue-600 mb-4">${score}<span class="text-2xl">点</span></p>
+        <p class="text-gray-600 mb-2"><strong>認識結果:</strong> ${transcript}</p>
+        <button onclick="document.getElementById('message-modal').classList.add('hidden')" class="mt-6 bg-blue-500 text-white py-2 px-6 rounded-lg">閉じる</button>
+    `);
 }
 
 function startQuiz() {
-    const quizData = [...chapterData].sort(() => 0.5 - Math.random()).slice(0, 10);
-    let currentIdx = 0;
-    let score = 0;
+    const questions = [...chapterData].sort(() => 0.5 - Math.random()).slice(0, 10);
+    let currentIdx = 0, score = 0;
 
     function nextQuestion() {
-        if (currentIdx >= quizData.length) {
-            quizContent.innerHTML = `<h3 class="text-2xl font-bold mb-4">終了！</h3><p class="text-5xl font-bold text-purple-600">${score * 10}点</p>`;
+        if (currentIdx >= questions.length) {
+            quizContent.innerHTML = `<h3 class="text-3xl font-bold mb-4">結果: ${score}/${questions.length}</h3><p class="text-6xl text-purple-600 font-bold">${Math.round(score/questions.length*100)}点</p>`;
             return;
         }
-        const item = quizData[currentIdx];
-        const correct = findAnswerFormInSentence(item.en, item.answer).replace(/[.,!?]$/, '');
-        const options = [correct, ...chapterData.map(d => d.answer).filter(a => a !== item.answer).sort(() => 0.5 - Math.random()).slice(0, 3)].sort(() => 0.5 - Math.random());
+        const q = questions[currentIdx];
+        const options = [q.answer, ...chapterData.map(d => d.answer).filter(a => a !== q.answer).sort(() => 0.5 - Math.random()).slice(0, 3)].sort();
 
         quizContent.innerHTML = `
-            <p class="mb-2 text-gray-500">Q${currentIdx+1}</p>
-            <p class="text-lg font-bold mb-4">${item.ja}</p>
-            <p class="font-english text-xl mb-6 p-4 bg-gray-50 rounded-lg">${item.en.replace(correct, '______')}</p>
-            <div class="grid grid-cols-2 gap-3">
+            <p class="mb-2">問題 ${currentIdx+1}/10</p>
+            <p class="text-lg font-bold mb-4">${q.ja}</p>
+            <div class="grid grid-cols-1 gap-3">
                 ${options.map(opt => `<button class="quiz-opt p-3 border rounded-lg hover:bg-blue-50 font-english">${opt}</button>`).join('')}
             </div>
         `;
-
         document.querySelectorAll('.quiz-opt').forEach(btn => {
             btn.onclick = () => {
-                if(btn.innerText === correct) score++;
-                currentIdx++;
-                nextQuestion();
+                if (btn.innerText === q.answer) { btn.classList.add('bg-green-200'); score++; }
+                else btn.classList.add('bg-red-200');
+                setTimeout(() => { currentIdx++; nextQuestion(); }, 1000);
             };
         });
     }
@@ -1187,46 +1096,50 @@ function startQuiz() {
 }
 
 // --- PDF Print Logic ---
-function openPrintWindow(bodyContent, title) {
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(`<html><head><title>LEAP学習アプリ P4 W8</title><style>body{font-family:sans-serif;padding:40px;}h1{text-align:center;border-bottom:2px solid #000;padding-bottom:10px;}.list{column-count:2;}li{margin-bottom:10px;}</style></head><body><h1>${title}</h1>${bodyContent}</body></html>`);
-    printWindow.document.close();
-    setTimeout(() => { printWindow.focus(); printWindow.print(); }, 500);
+function openPrintWindow(content, title) {
+    const win = window.open('', '_blank');
+    win.document.write(`<html><head><title>LEAP学習アプリ P4 W8</title><style>body{font-family:sans-serif;padding:40px} .list{column-count:2} li{margin-bottom:10px} .ans{margin-top:50px;border-top:1px solid #000;padding-top:20px}</style></head><body><h1>${title}</h1>${content}</body></html>`);
+    win.document.close();
+    setTimeout(() => { win.focus(); win.print(); }, 500);
+}
+
+function getSelected() {
+    return Array.from(selectedSentences).map(id => chapterData.find(d => d.id === id)).sort((a,b) => a.id.localeCompare(b.id, undefined, {numeric: true}));
 }
 
 // --- Listeners ---
 toggleAnswerBtn.onclick = () => activeSentenceElement?.classList.toggle('show-answer');
 toggleExplanationBtn.onclick = () => {
-    const div = activeSentenceElement?.querySelector('.explanation');
-    if(div) div.style.display = div.style.display === 'block' ? 'none' : 'block';
+    const exp = activeSentenceElement?.querySelector('.explanation');
+    if (exp) exp.style.display = exp.style.display === 'block' ? 'none' : 'block';
 };
 playSoundBtn.onclick = playSound;
 recordBtn.onclick = handleRecording;
 startQuizBtn.onclick = startQuiz;
 closeQuizBtn.onclick = () => quizModal.classList.add('hidden');
-openPdfModalBtn.onclick = () => pdfModal.classList.remove('hidden');
+openPdfModalBtn.onclick = () => selectedSentences.size ? pdfModal.classList.remove('hidden') : showMessage('問題を選択してください', 2000);
 closeModalBtn.onclick = () => pdfModal.classList.add('hidden');
-
 selectAllCheckbox.onchange = (e) => {
     document.querySelectorAll('.sentence-checkbox').forEach(cb => {
         cb.checked = e.target.checked;
-        if(e.target.checked) selectedSentences.add(cb.dataset.id); else selectedSentences.delete(cb.dataset.id);
+        if (e.target.checked) selectedSentences.add(cb.dataset.id);
+        else selectedSentences.delete(cb.dataset.id);
     });
 };
 
 document.getElementById('download-list-btn').onclick = () => {
-    const items = Array.from(selectedSentences).map(id => chapterData.find(d => d.id === id));
+    const items = getSelected();
     const html = `<div class="list"><ul>${items.map(i => `<li><strong>${i.answer}</strong>: ${i.explanation}</li>`).join('')}</ul></div>`;
     openPrintWindow(html, '重要語句リスト');
 };
 
-document.getElementById('download-en-quiz-btn').onclick = () => {
-    const items = Array.from(selectedSentences).map(id => chapterData.find(d => d.id === id));
-    const html = `<ol>${items.map(i => `<li>${i.ja} ( ________ )</li>`).join('')}</ol><hr><h3>解答</h3><p>${items.map(i => i.answer).join(', ')}</p>`;
-    openPrintWindow(html, '英語解答テスト');
+document.getElementById('download-sentence-quiz-btn').onclick = () => {
+    const items = getSelected();
+    const html = `<ol>${items.map(i => `<li>${i.en.replace(new RegExp(findAnswerFormInSentence(i.en, i.answer), 'i'), '__________')}<br><small>${i.ja}</small></li>`).join('')}</ol><div class="ans"><h3>解答</h3><p>${items.map(i => i.answer).join(', ')}</p></div>`;
+    openPrintWindow(html, '例文穴埋めテスト');
 };
 
-// Initial Render
+// 初期表示
 document.addEventListener('DOMContentLoaded', renderChapter);
 </script>
 </body>
