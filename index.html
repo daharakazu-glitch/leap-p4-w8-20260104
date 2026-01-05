@@ -1104,7 +1104,7 @@ function openPrintWindow(content, title) {
 }
 
 function getSelected() {
-    return Array.from(selectedSentences).map(id => chapterData.find(d => d.id == id)).sort((a,b) => a.id.localeCompare(b.id, undefined, {numeric: true}));
+    return Array.from(selectedSentences).map(id => chapterData.find(d => d.id == id)).sort((a,b) => String(a.id).localeCompare(String(b.id), undefined, {numeric: true}));
 }
 
 // --- Listeners ---
