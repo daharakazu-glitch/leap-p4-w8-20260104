@@ -1139,6 +1139,41 @@ document.getElementById('download-sentence-quiz-btn').onclick = () => {
     openPrintWindow(html, '例文穴埋めテスト');
 };
 
+
+document.getElementById('download-en-quiz-btn').onclick = () => {
+    const items = getSelected();
+    const html = `<div class="list"><ul>${items.map(i => `<li>[日本語]: ${i.ja}<br>[英語]: __________</li>`).join('')}</ul></div><div class="ans"><h3>解答</h3><p>${items.map(i => i.answer).join(', ')}</p></div>`;
+    openPrintWindow(html, '英単語テスト');
+};
+
+document.getElementById('download-ja-quiz-btn').onclick = () => {
+    const items = getSelected();
+    const html = `<div class="list"><ul>${items.map(i => `<li>[英語]: ${i.answer}<br>[意味]: __________</li>`).join('')}</ul></div><div class="ans"><h3>解答</h3><p>${items.map(i => i.explanation.split('\n')[0]).join('<br>')}</p></div>`;
+    openPrintWindow(html, '意味テスト');
+};
+
+document.getElementById('download-mixed-quiz-btn').onclick = () => {
+    const items = getSelected();
+    const html = `<div class="list"><ul>${items.map(i => {
+        return Math.random() > 0.5 
+            ? `<li>[日本語]: ${i.ja}<br>[英語]: __________</li>`
+            : `<li>[英語]: ${i.answer}<br>[意味]: __________</li>`;
+    }).join('')}</ul></div><div class="ans"><h3>解答</h3><p>${items.map(i => i.answer + ' / ' + i.explanation).join('<br>')}</p></div>`;
+    openPrintWindow(html, '英単語・意味混合テスト');
+};
+
+document.getElementById('download-sentence-mixed-quiz-btn').onclick = () => {
+    const items = getSelected();
+    const html = `<ol>${items.map(i => {
+        if (Math.random() > 0.5) {
+             return `<li>${i.en.replace(new RegExp(findAnswerFormInSentence(i.en, i.answer), 'i'), '__________')}<br><small>${i.ja}</small></li>`;
+        } else {
+             return `<li>日本文を英語にしなさい: ${i.ja}<br>_____________________________________________</li>`;
+        }
+    }).join('')}</ol><div class="ans"><h3>解答</h3><p>${items.map(i => i.en).join('<br>')}</p></div>`;
+    openPrintWindow(html, '例文混合テスト');
+};
+
 // 初期表示
 document.addEventListener('DOMContentLoaded', renderChapter);
 </script>
